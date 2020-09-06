@@ -2,7 +2,7 @@ import uuid
 import warnings
 
 import pytest
-from django.conf.urls import url
+from django.conf.urls import re_path, url
 from django.test import RequestFactory, TestCase, override_settings
 from django.utils.translation import gettext_lazy as _
 
@@ -1110,3 +1110,15 @@ class TestGenerator(TestCase):
         schema = generator.get_schema(request=create_request('/'))
         assert 'components' not in schema
         assert 'content' not in schema['paths']['/example/']['delete']['responses']['204']
+
+    def test_schema_re_path(self):
+        router = routers.SimpleRouter()
+        router.register('account', views.ExampleGenericViewSet, basename="account")
+        urlpatterns = router.urls
+        urlpatterns += [
+            re_path(r'^email-hmac/(?P<key>[-:\w]+)', views.ExampleDetailView.as_view(), name='email_hmac'),
+        ]
+        generator = SchemaGenerator(patterns=urlpatterns)
+        schema = generator.get_schema()
+        schema_str = str(schema)
+        assert schema_str.count("email-hmac/{key}") == 1
