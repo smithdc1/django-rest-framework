@@ -16,6 +16,7 @@ from rest_framework import exceptions, serializers
 from rest_framework.fields import (
     BuiltinSignatureError, DjangoImageField, is_simple_callable
 )
+from rest_framework.exceptions import ErrorDetail
 
 # Tests for helper functions.
 # ---------------------------
@@ -1958,6 +1959,22 @@ class TestListField(FieldValues):
         assert exc_info.value.detail == ['Expected a list of items but got type "dict".']
 
 
+class TestListDjangoValidation(FieldValues):
+    valid_inputs = [
+    ]
+    invalid_inputs = [
+        ([1, 2], {0: [ErrorDetail(string='A Django Validation Error', code='invalid')],
+                  1: [ErrorDetail(string='A Django Validation Error', code='invalid')]})]
+
+    outputs = [
+    ]
+
+    def validate(value):
+        raise DjangoValidationError('A Django Validation Error')
+
+    field = serializers.ListField(child=serializers.IntegerField(validators=[validate]))
+
+
 class TestNestedListField(FieldValues):
     """
     Values for nested `ListField` with IntegerField as child.
@@ -1975,6 +1992,27 @@ class TestNestedListField(FieldValues):
         ([[1, 2], [3]], [[1, 2], [3]]),
     ]
     field = serializers.ListField(child=serializers.ListField(child=serializers.IntegerField()))
+
+
+class TestNestedListFieldDjangoValidators(FieldValues):
+    valid_inputs = [
+    ]
+    invalid_inputs = [
+        (
+            [[1], [2]],
+            {
+                0: [ErrorDetail(string='A Django Validation Error', code='invalid')],
+                1: [ErrorDetail(string='A Django Validation Error', code='invalid')],
+            },
+        ),
+    ]
+    outputs = [
+    ]
+
+    def validate(value):
+        raise DjangoValidationError('A Django Validation Error')
+
+    field = serializers.ListField(child=serializers.ListField(child=serializers.IntegerField(), validators=[validate]))
 
 
 class TestEmptyListField(FieldValues):
